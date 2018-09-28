@@ -1,8 +1,5 @@
 package vsgridmaps;
 
-import java.util.Collections;
-import java.util.ArrayList;
-
 public class ProblemInstance {
 
     private int instancenumber = -1;
@@ -55,32 +52,7 @@ public class ProblemInstance {
 
     public void setPointset(WeightedPointSet pointset) {
         this.pointset = pointset;
-    }
-
-    
-    public void solveRemap() {
-    	
-    	// 1. Sort pointset in ascending order on the basis of the weight of the points
-    	Collections.sort(pointset, (a, b) -> a.getWeight() > b.getWeight() ? -1 : a.getWeight() == b.getWeight() ? 0 : 1);
-    	
-    	// 2. Starting from the weighted point with the highest weight, map p to nearest free location
-    	for(WeightedPoint wp : pointset) {
-    		System.out.println(wp.getX() + " " + wp.getY() + " " + wp.getWeight());
-    		
-    		ArrayList<Coordinate> exceptionList = new ArrayList<Coordinate>();
-    		
-    		if(wp.getWeight() % 2 != 0) {
-    			// weight is odd
-    			
-    		}
-    		else {
-    			// weight is even
-    			// remap test
-    		}
-    	}
-    }
-    
-    
+    }   
 
     public double computeScore() {
         double sum = 0;
