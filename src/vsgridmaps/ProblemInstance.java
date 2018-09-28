@@ -5,7 +5,7 @@ import java.util.Collections;
 public class ProblemInstance {
 
     private int instancenumber = -1;
-    private WeightedPointSet pointset;
+    private vsgridmaps.WeightedPointSet pointset;
     private int minx, maxx, miny, maxy;
 
     public int getMinx() {
@@ -48,7 +48,7 @@ public class ProblemInstance {
         this.instancenumber = instancenumber;
     }
 
-    public WeightedPointSet getPointset() {
+    public vsgridmaps.WeightedPointSet getPointset() {
         return pointset;
     }
 
@@ -74,7 +74,7 @@ public class ProblemInstance {
     		}
     		else {
     			// weight is even
-    			// extra comment
+    			// remap test
     		}
     	}
     }
