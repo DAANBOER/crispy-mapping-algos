@@ -58,7 +58,7 @@ public class ProblemInstance {
     }
 
     
-    public void solveGreedily() {
+    public void solveRemap() {
     	
     	// 1. Sort pointset in ascending order on the basis of the weight of the points
     	Collections.sort(pointset, (a, b) -> a.getWeight() > b.getWeight() ? -1 : a.getWeight() == b.getWeight() ? 0 : 1);
