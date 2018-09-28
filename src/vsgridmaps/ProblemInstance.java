@@ -1,6 +1,7 @@
 package vsgridmaps;
 
 import java.util.Collections;
+import java.util.ArrayList;
 
 public class ProblemInstance {
 
