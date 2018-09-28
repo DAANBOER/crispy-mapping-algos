@@ -74,9 +74,7 @@ public class ProblemInstance {
     		}
     		else {
     			// weight is even
-    			do {
-    				
-    			} while ();
+    			
     		}
     	}
     }
