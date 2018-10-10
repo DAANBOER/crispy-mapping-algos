@@ -33,6 +33,7 @@ public class ZipLoader {
                         try {
                             Scanner scan = new Scanner(new InputStreamReader(zipfile.getInputStream(entry)));
                             next = Load.instance(scan);
+                            return true;
                         } catch (IOException ex) {
                             Logger.getLogger(ZipLoader.class.getName()).log(Level.SEVERE, null, ex);
                         }
