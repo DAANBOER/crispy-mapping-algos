@@ -54,6 +54,7 @@ public class ProblemInstance {
         this.pointset = pointset;
     }   
 
+
     public double computeScore() {
         double sum = 0;
         for (WeightedPoint wp : pointset) {

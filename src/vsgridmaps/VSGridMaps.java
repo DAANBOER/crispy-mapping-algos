@@ -38,6 +38,7 @@ public class VSGridMaps {
         } else if (args[0].equals("-run") && args.length >= 2 ) {
         	ProblemInstance inst = Load.instance(args[1]);
         	
+
         	//TODO: write solver function to solve inst
         	
         }
