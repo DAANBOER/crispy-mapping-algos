@@ -49,6 +49,7 @@ public class VSGridMaps {
                     //saver.addSolution(inst, groupnumber);
 
                     sleep(5000);
+                    inst.solveLP();
                     saver.addSolution(inst, 8);
                     System.out.println("Solved instance");
                 }
