@@ -2,11 +2,10 @@ package vsgridmaps;
 
 import java.io.IOException;
 
-import static java.lang.Thread.sleep;
-
 public class VSGridMaps {
 
     public static void main(String[] args) throws IOException {
+        System.out.println("Program starting");
         if (args.length < 3) {
             System.out.println("Not enough arguments provided");
             System.exit(1);
@@ -38,24 +37,15 @@ public class VSGridMaps {
 
 
                 for (ProblemInstance inst : loader.iterateInstances()) {
-                    // TODO: run some solver on instance
-
-                    // NB: if your solver changes the order of the points in the
-                    // problem instance, make sure to revert before saving!
-                    // Alternatively, you can also create a new list in your solver
-                    // and work on that one...
-
-                    // TODO: uncomment and fill in your groupnumber
-                    //saver.addSolution(inst, groupnumber);
-
-                    sleep(5000);
-                    inst.solveLP();
-                    saver.addSolution(inst, 8);
-                    System.out.println("Solved instance");
+                    boolean succeeded = inst.solveLP();
+                    if (succeeded) {
+                        saver.addSolution(inst, 8);
+                        System.out.println("Solved instance");
+                    } else {
+                        System.out.println("Instance failed to solve");
+                    }
                 }
 
-            } catch (InterruptedException e) {
-                System.out.println("Program was interrupted");
             } finally {
                 loader.close();
                 saver.close();

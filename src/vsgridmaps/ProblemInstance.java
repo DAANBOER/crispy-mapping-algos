@@ -1,17 +1,19 @@
 package vsgridmaps;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.chocosolver.solver.Model;
-import org.chocosolver.solver.variables.BoolVar;
+import org.chocosolver.solver.Solution;
+import org.chocosolver.solver.constraints.Constraint;
+import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.RealVar;
 import org.chocosolver.solver.variables.Variable;
+import org.chocosolver.util.ESat;
 import org.chocosolver.util.tools.ArrayUtils;
-
-import static java.lang.Math.floor;
 
 public class ProblemInstance {
 
+    private static final String TIME_LIMIT = "120s";
+    public static final double PRECISION = 0.01;
     private int instancenumber = -1;
     private WeightedPointSet pointset;
     private int minx, maxx, miny, maxy;
@@ -91,10 +93,10 @@ public class ProblemInstance {
                 dy = Math.round(wp.getAssigned_y() - 0.5) - (wp.getAssigned_y() - 0.5);
             }
 
-            if (Math.abs(dx) >= 0.01) {
+            if (Math.abs(dx) >= PRECISION) {
                 return false;
             }
-            if (Math.abs(dy) >= 0.01) {
+            if (Math.abs(dy) >= PRECISION) {
                 return false;
             }
 
@@ -108,7 +110,7 @@ public class ProblemInstance {
         return true;
     }
 
-    public void solveLP() {
+    public boolean solveLP() {
         Model model = new Model("whatever");
 
         int sum_of_weights = 0;
@@ -128,58 +130,60 @@ public class ProblemInstance {
             for (int h=k+1; h<pointset.size(); h++) {
 
                 WeightedPoint ph = pointset.get(h);
+
                 int half_k_size = pk.getWeight()/2;
                 int half_h_size = ph.getWeight()/2;
 
-                if (pk.getWeight() % 2 != 0) { half_k_size += 1; }
-                if (ph.getWeight() % 2 != 0) { half_h_size += 1; }
+                int offset_k = 0;
+                int offset_h = 0;
 
-                System.out.println("Pair " + k + ", " + h);
-
-                //model.arithm(i[k], "!=", i[h]).post();
-                //model.arithm(j[k], "!=", j[h]).post();
+                if (pk.getWeight() % 2 != 0) { offset_k = 1; }
+                if (ph.getWeight() % 2 != 0) { offset_h = 1; }
 
 
-                // ik + sk/2 ≤ ih - sh/2
-                // ik ≤ ih -sk/2 -sh/2
-                BoolVar c1 = model.arithm(
+
+                // ik - ok + sk/2 ≤ ih -oh - sh/2
+                // ik ≤ ih -sk/2 -sh/2 +ok -oh
+                Constraint c1 = model.arithm(
                         i[k],
                         "<=",
                         i[h],
                         "+",
-                        -half_k_size -half_h_size
-                ).reify();
+                        -half_k_size -half_h_size - offset_h
+                );
 
-                // ik - sk/2 ≥ ih + sh/2
-                // ik ≥ ih +sk/2 -sh/2
-                BoolVar c2 = model.arithm(
+
+                // ik -ok - sk/2 ≥ ih -oh + sh/2
+                // ik ≥ ih +sk/2 +sh/2 +ok -oh
+                Constraint c2 = model.arithm(
                         i[k],
                         ">=",
                         i[h],
                         "+",
-                        +half_k_size +half_h_size
-                ).reify();
+                        +half_k_size +half_h_size + offset_k
+                );
 
-                // jk + sk/2 ≤ jh - sh/2
-                // jk ≤ jh -sk/2 -sh/2
-                BoolVar c3 = model.arithm(
+                // jk - ok + sk/2 ≤ jh -oh - sh/2
+                // jk ≤ jh -sk/2 -sh/2 +ok -oh
+                Constraint c3 = model.arithm(
                         j[k],
                         "<=",
                         j[h],
                         "+",
-                        -half_k_size -half_h_size
-                ).reify();
+                        -half_k_size -half_h_size - offset_h
+                );
 
-                // jk - sk/2 ≥ jh + sh/2
-                // jk ≥ jh +sk/2 -sh/2
-                BoolVar c4 = model.arithm(
+                // jk - ok - sk/2 ≥ jh -oh + sh/2
+                // jk ≥ jh +sk/2 +sh/2 +ok -oh
+                Constraint c4 = model.arithm(
                         j[k],
                         ">=",
                         j[h],
                         "+",
-                        +half_k_size +half_h_size
-                ).reify();
+                        +half_k_size +half_h_size + offset_k
+                );
 
+                //model.or(c1, c2).post();
                 model.or(c1, c2, c3, c4).post();
 
             }
@@ -188,21 +192,46 @@ public class ProblemInstance {
 
         // Minimization goal
 
-        // This here needs the choco-ibex module. I haven't been able to install that yet
-        // http://www.ibex-lib.org/doc/java-install.html
-        // Maybe we can try some other goal, this seemed to be the only one accepting real numbers
-        // but I'm not entirely sure.
+        setGoalWithIbex(model, i, j);
+        //setApproxGoal(model, i, j);
 
-        RealVar goal = model.realVar("goal", 0, 100000, 0.01);
+        // Solve
+        model.getSolver().limitTime(TIME_LIMIT);
+        Solution s = new Solution(model);
+
+        while (model.getSolver().solve()){
+            s.record();
+        }
+        // Check if it is actually a solution to not break the program
+        if (model.getSolver().isFeasible() != ESat.TRUE) {
+            return false;
+        }
+        System.out.println("Solution found (objective = "+model.getSolver().getBestSolutionValue()+")");
+
+        // Set solution back to the problem
+        for (int k=0; k<pointset.size(); k++) {
+            WeightedPoint p = pointset.get(k);
+            double delta = 0;
+            if (p.getWeight() % 2 != 0) {
+                delta = -0.5;
+            }
+            p.setAssigned_x(s.getIntVal(i[k]) + delta);
+            p.setAssigned_y(s.getIntVal(j[k]) + delta);
+        }
+        return true;
+    }
+
+    private void setGoalWithIbex(Model model, IntVar[] i, IntVar[] j) {
+        RealVar goal = model.realVar("goal", 0, 100000, PRECISION);
         StringBuilder ibexconstraint = new StringBuilder();
         for (int k=0; k<pointset.size(); k++) {
             WeightedPoint p = pointset.get(k);
             String extra_delta = "";
             if (p.getWeight() % 2 != 0) {
-                extra_delta = "-0.5";
+                extra_delta = "+0.5";
             }
             ibexconstraint.append(String.format(
-                    "sqrt( (%f - {%d} %s)^2 + (%f - {%d} %s)^2 )",
+                    "(%f - {%d} %s)^2 + (%f - {%d} %s)^2",
                     p.getX(), k+1, extra_delta,
                     p.getY(), pointset.size()+k+1, extra_delta
             ));
@@ -211,7 +240,6 @@ public class ProblemInstance {
             }
         }
         ibexconstraint.append(" = {0}");
-        System.out.println(ibexconstraint);
 
         Variable[] goal_list = new Variable[] {goal};
         Variable[] arguments = ArrayUtils.append(goal_list, i, j);
@@ -219,23 +247,8 @@ public class ProblemInstance {
 
         model.setObjective(Model.MINIMIZE, goal);
 
-        // Solve
-        model.getSolver().solve();
-
-        System.out.println("Solution");
-
-        // Set solution back to the problem
-        for (int k=0; k<pointset.size(); k++) {
-            System.out.println("Point" + k);
-            System.out.println(i[k]);
-            System.out.println(j[k]);
-            WeightedPoint p = pointset.get(k);
-            double delta = 0;
-            if (p.getWeight() % 2 != 0) {
-                delta = -0.5;
-            }
-            p.setAssigned_x(i[k].getValue() + delta);
-            p.setAssigned_y(j[k].getValue() + delta);
-        }
+        IntVar[] minimized = new IntVar[] {};
+        minimized = ArrayUtils.append(minimized, i, j);
+        model.getSolver().setSearch(Search.activityBasedSearch(minimized));
     }
 }
